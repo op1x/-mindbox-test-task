@@ -1,0 +1,13 @@
+# service.yaml
+apiVersion: v1
+kind: Service              # Тип: "Телефонный коммутатор"
+metadata:
+  name: web-app-service    # Имя сервиса
+spec:
+  selector:
+    app: web-app           # Ищем все с наклейкой "app: web-app"
+  ports:
+    - protocol: TCP
+      port: 80             # Внешний порт (какой номер набирать)
+      targetPort: 80       # Внутренний порт (куда звонить)
+  type: ClusterIP          # Внутренний телефон (только внутри кластера)

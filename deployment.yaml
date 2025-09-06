@@ -1,0 +1,70 @@
+# deployment.yaml
+apiVersion: apps/v1          # Это как "версия инструкции" для Kubernetes
+kind: Deployment             # Тип: "Главный рабочий" который создает копии
+metadata:                    # Паспортные данные
+  name: web-app              # Имя нашего работника: "web-app"
+  labels:                    # Наклейки для поиска
+    app: web-app             # Наклейка "я - web-app"
+
+spec:                        # Что он должен делать
+  replicas: 4                # Создать 4 одинаковые копии приложения
+  selector:                  # Как находить свои копии
+    matchLabels:
+      app: web-app           # Ищем по наклейке "app: web-app"
+  
+  strategy:
+    type: RollingUpdate      # Обновлять постепенно, без простоя
+    rollingUpdate:
+      maxSurge: 1            # Добавлять по 1 копии за раз
+      maxUnavailable: 1      # Максимум 1 недоступная копия при обновлении
+
+  template:                  # Шаблон для создания копий
+    metadata:
+      labels:
+        app: web-app         # Каждая копия получает такую же наклейку
+    spec:
+      # Распределяем копии по разным зонам (для надежности)
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: web-app
+      
+      containers:            # Что внутри каждой копии
+        - name: web-app      # Имя контейнера
+          image: nginx:latest  # Пока используем nginx для примера
+          
+          # Сколько ресурсов нужно (из задания)
+          resources:
+            requests:        # Минимум для работы
+              cpu: "100m"    # 0.1 процессора (ровное потребление)
+              memory: "128Mi" # 128MB памяти (всегда нужно)
+            limits:          # Максимум (на случай пика)
+              cpu: "500m"    # 0.5 процессора (для первых запросов)
+              memory: "256Mi" # 256MB памяти (запас)
+          
+          # Проверяем здоровье приложения
+          startupProbe:      # Проверяем, запустилось ли? (5-10 секунд из задания)
+            httpGet:
+              path: /        # Проверяем главную страницу
+              port: 80
+            failureThreshold: 30  # Ждем до 300 секунд (5 минут)
+            periodSeconds: 10     # Проверяем каждые 10 секунд
+          
+          livenessProbe:     # Проверяем, не умерло ли приложение
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30  # Ждем 30 секунд перед первой проверкой
+            periodSeconds: 10        # Проверяем каждые 10 секунд
+          
+          readinessProbe:    # Проверяем, готово ли принимать запросы
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            failureThreshold: 1
+

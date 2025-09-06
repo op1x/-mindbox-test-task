@@ -1,0 +1,10 @@
+# pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget   # Тип: "Страховка от сбоев"
+metadata:
+  name: web-app-pdb         # Имя страховки
+spec:
+  minAvailable: 3           # Всегда должно работать минимум 3 копии
+  selector:
+    matchLabels:
+      app: web-app          # Страхуем наши копии "web-app"
